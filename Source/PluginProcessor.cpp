@@ -6,6 +6,8 @@ static juce::AudioProcessorValueTreeState::ParameterLayout layout(){
   auto F=[&](const char* id,const char* n,float mn,float mx,float d){ v.push_back(std::make_unique<juce::AudioParameterFloat>(id,n,mn,mx,d)); };
   auto B=[&](const char* id,const char* n,bool d){ v.push_back(std::make_unique<juce::AudioParameterBool>(id,n,d)); };
   auto C=[&](const char* id,const char* n,juce::StringArray opts,int d){ v.push_back(std::make_unique<juce::AudioParameterChoice>(id,n,opts,d)); };
+  // REAL BYPASS - global, first param
+  B("BYPASS","Bypass",false);
   // Transient Shaper - Kilohearts style
   B("SHAPER_ON","Shaper ON",true); F("SH_ATTACK","Shaper Attack",-100,100,0); F("SH_SUSTAIN","Shaper Sustain",-100,100,0); F("SH_SPEED","Shaper Speed",0,100,50); F("SH_SEP","Shaper Separation",0,100,50); F("SH_MIX","Shaper Mix",0,100,100);
   // G Comp - same correct core as Mix Bus
@@ -25,6 +27,7 @@ void DrumBusAudioProcessor::releaseResources(){}
 void DrumBusAudioProcessor::processBlock(juce::AudioBuffer<float>& b, juce::MidiBuffer&){
   juce::ScopedNoDenormals d;
   auto G=[&](const char* id) -> float { return *apvts.getRawParameterValue(id); };
+  bus.bypass=G("BYPASS")>0.5f;
   bus.shaperOn=G("SHAPER_ON")>0.5f; bus.shAttack=G("SH_ATTACK"); bus.shSustain=G("SH_SUSTAIN"); bus.shSpeed=G("SH_SPEED"); bus.shSep=G("SH_SEP"); bus.shMix=G("SH_MIX");
   bus.compOn=G("COMP_ON")>0.5f; bus.compThresh=G("COMP_THRESH"); bus.compMakeup=G("COMP_MAKEUP"); bus.compMix=G("COMP_MIX"); bus.compAttackIdx=(int)G("COMP_ATTACK"); bus.compReleaseIdx=(int)G("COMP_RELEASE"); bus.compRatioIdx=(int)G("COMP_RATIO"); bus.compAutoGain=G("COMP_AUTOGAIN")>0.5f;
   bus.satOn=G("SAT_ON")>0.5f; bus.satDrive=G("SAT_DRIVE"); bus.satMix=G("SAT_MIX"); bus.satAutoGain=G("SAT_AUTOGAIN")>0.5f;

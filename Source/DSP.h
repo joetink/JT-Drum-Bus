@@ -7,6 +7,8 @@ static float tanhPadeD(float x){ float x2=x*x; return x*(27+x2)/(27+9*x2); }
 class DrumBus {
 public:
   double sr=48000;
+  bool bypass=false; // REAL BYPASS - when true, all processing skipped, dry audio passes through
+  float inLevelDb=-60, outLevelDb=-60; // REAL IN/OUT meters for top bar
   // G COMP - CORRECT SSL: feedback, dominant peak, ratio-dependent knee
   bool compOn=true; float compThresh=-10, compMakeup=0, compMix=100; int compAttackIdx=4, compReleaseIdx=4, compRatioIdx=1; float compGain=1, compGR=0; float compPeakEnv=0; bool compAutoGain=true;
   // TRANSIENT SHAPER - Kilohearts style: Attack / Sustain / Speed / Separation / Mix
@@ -91,10 +93,21 @@ public:
     return y;
   }
   void processStereo(float& L, float& R){
+    float inPeak = std::max(fabsf(L), fabsf(R));
+    inLevelDb = 0.9f*inLevelDb + 0.1f*(20*log10f(inPeak+1e-12f));
+    if(bypass){
+      // REAL BYPASS: no Shaper / Comp / Sat / Clip - dry, GR -> 0, Clip decays, scope shows dry
+      compGR=0; clipMeterDb*=0.95f;
+      scopeBuf[scopePos]=L; scopePos=(scopePos+1)%scopeN;
+      outLevelDb = inLevelDb;
+      return;
+    }
     // Order: Shaper -> Comp -> Sat -> Clip (Comp after Shaper so it doesn't undo attack boost, Clip last)
     L=processShaper(L,0); R=processShaper(R,1);
     processGCompStereo(L,R);
     L=processDSat(L,0); R=processDSat(R,1);
     L=processClip(L,0); R=processClip(R,1);
+    float outPeak = std::max(fabsf(L), fabsf(R));
+    outLevelDb = 0.9f*outLevelDb + 0.1f*(20*log10f(outPeak+1e-12f));
   }
 };
