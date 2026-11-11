@@ -1,0 +1,23 @@
+name: Build VST3
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get CPM.cmake
+        shell: bash
+        run: |
+          mkdir -p cmake
+          curl -L https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.40.2/CPM.cmake -o cmake/CPM.cmake
+      - name: Configure
+        shell: bash
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build VST3
+        shell: bash
+        run: cmake --build build --config Release --parallel
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: JT-Drum-Bus-VST3-Windows
+          path: build/JTDrumBus_artefacts/Release/VST3/
